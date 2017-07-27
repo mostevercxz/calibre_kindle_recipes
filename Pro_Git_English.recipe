@@ -1,0 +1,55 @@
+from calibre.web.feeds.recipes import BasicNewsRecipe
+"""
+references:
+Calibre recipes API:
+https://manual.calibre-ebook.com/news_recipe.html
+ebook converter API:
+https://manual.calibre-ebook.com/generated/en/ebook-convert.html#look-and-feel
+calibre offcial example:
+https://manual.calibre-ebook.com/news.html#customizing-the-fetch-process
+
+How to remove "This article was downloaded by calibre from ..."?
+Add option:
+--output-profile kindle
+For example:
+ebook-convert Pro_Git_English.recipe output.mobi --output-profile kindle
+"""
+
+class Pro_Git_English(BasicNewsRecipe):
+
+    title = 'Pro Git English'
+    description = ''
+    cover_url = 'https://git-scm.com/images/progit2.png'
+
+    url_prefix = 'https://git-scm.com/book/en/v2'
+    no_stylesheets = False
+    simultaneous_downloads = 1
+    #keep_only_tags = [{ 'class': 'book-toc' }]
+
+    def get_title(self, link):
+        return link.contents[0].strip()
+    def preprocess_html(self, soup):
+        soup.find("div", {"id" : "book-chapters"}).extract()
+        soup.find("aside", {"class" : "sidebar"}).extract()
+        soup.find("div", {"id" : "nav"}).extract()
+        soup.find("header").extract()
+        soup.find("footer").extract()
+        return soup
+
+    def parse_index(self):
+        soup = self.index_to_soup(self.url_prefix)
+
+        div = soup.find('ol', { 'class': 'book-toc' })
+
+        articles = []
+        
+        for oneli in div.findAll('li', {"class" : "chapter"}):            
+            for link in oneli.ol.findAll('a'):
+                title = self.get_title(link)
+                url = 'https://git-scm.com' + link['href']
+                a = {'title': title, 'url': url}
+                articles.append(a)
+
+        ans = [('Pro Git English', articles)]
+
+        return ans
